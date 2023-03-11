@@ -44,7 +44,8 @@ def get_candidates(sign_dict):
         for item in comb_list:
             candidate_pairs.add(item)
     
-    return candidate_pairs
+    sorted_pairs = sorted(candidate_pairs, key=lambda pair: (pair[0], pair[1]))
+    return sorted_pairs
 
 def check_similarity(candidate_pairs, business_user_dict):
     result_str = ""
@@ -67,12 +68,12 @@ def write_csv_file(result_str, output_file):
 if __name__ == "__main__":
     sc = SparkContext()
 
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
+    # input_file = sys.argv[1]
+    # output_file = sys.argv[2]
 
-    # input_file = "../data/yelp_train.csv"
-    # output_file = "../result/task1.csv"
-    # ground_truth_file = "../data/pure_jaccard_similarity.csv"
+    input_file = "../data/yelp_train.csv"
+    output_file = "../result/task1.csv"
+    ground_truth_file = "../data/pure_jaccard_similarity.csv"
 
     data_RDD = sc.textFile(input_file)
     header = data_RDD.first()
@@ -106,3 +107,24 @@ if __name__ == "__main__":
 
     write_csv_file(result_str, output_file)
 
+
+    """
+    Calculate precision and recall
+    """
+    with open("../data/pure_jaccard_similarity.csv") as in_file:
+        answer = in_file.read().splitlines(True)[1:]
+    answer_set = set()
+    for line in answer:
+        row = line.split(',')
+        answer_set.add((row[0], row[1]))
+    with open("../result/task1.csv") as in_file:
+        estimate = in_file.read().splitlines(True)[1:]
+    estimate_set = set()
+    for line in estimate:
+        row = line.split(',')
+        estimate_set.add((row[0], row[1]))
+    print("Precision:")
+    print(len(answer_set.intersection(estimate_set))/len(estimate_set))
+    print("Recall:")
+    print(len(answer_set.intersection(estimate_set))/len(answer_set))
+    print(answer_set.difference(estimate_set))

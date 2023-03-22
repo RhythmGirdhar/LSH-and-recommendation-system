@@ -6,11 +6,11 @@ import operator
 from itertools import combinations
 
 def create_func_list():
-    func_list = list()
+    func_list = dict()
     param_as = random.sample(range(1, m), n)
-    func_list.append(param_as)
+    func_list['a'] = param_as
     param_bs = random.sample(range(1, m), n)
-    func_list.append(param_bs)
+    func_list['b'] = param_bs
 
     return func_list
 
@@ -21,7 +21,7 @@ def create_signature(func_list, business_user_dict, user_index_dict):
         for i in range(n):
             minhash = float("inf")
             for user in users:
-                minhash = min(minhash, (((func_list[0][i] * user_index_dict[user] + func_list[1][i]) % p) % m))
+                minhash = min(minhash, (((func_list['a'][i] * user_index_dict[user] + func_list['b'][i]) % p) % m))
             minhash_sign_list.append(int(minhash))
         sign_dict[business] = minhash_sign_list
     return sign_dict
@@ -71,8 +71,8 @@ if __name__ == "__main__":
     # input_file = sys.argv[1]
     # output_file = sys.argv[2]
 
-    input_file = "../data/yelp_train.csv"
-    output_file = "../result/task1.csv"
+    input_file = "data/yelp_train.csv"
+    output_file = "result/task1.csv"
     ground_truth_file = "../data/pure_jaccard_similarity.csv"
 
     data_RDD = sc.textFile(input_file)
@@ -83,11 +83,7 @@ if __name__ == "__main__":
             .sortBy(lambda item: item).zipWithIndex().map(lambda kv: {kv[0]: kv[1]}) \
             .flatMap(lambda kv_items: kv_items.items()).collectAsMap()
 
-    business_user = data_RDD.map(lambda row: (row[1], row[0])).groupByKey().mapValues(set)
-
-    business_user_dict = {}
-    for business, users in business_user.collect():
-        business_user_dict[business] = users
+    business_user_dict = data_RDD.map(lambda row: (row[1], row[0])).groupByKey().mapValues(set).collectAsMap()
 
     
     #all variable declarations
@@ -106,25 +102,3 @@ if __name__ == "__main__":
     result_str = check_similarity(candidate_pairs, business_user_dict)
 
     write_csv_file(result_str, output_file)
-
-
-    """
-    Calculate precision and recall
-    """
-    with open("../data/pure_jaccard_similarity.csv") as in_file:
-        answer = in_file.read().splitlines(True)[1:]
-    answer_set = set()
-    for line in answer:
-        row = line.split(',')
-        answer_set.add((row[0], row[1]))
-    with open("../result/task1.csv") as in_file:
-        estimate = in_file.read().splitlines(True)[1:]
-    estimate_set = set()
-    for line in estimate:
-        row = line.split(',')
-        estimate_set.add((row[0], row[1]))
-    print("Precision:")
-    print(len(answer_set.intersection(estimate_set))/len(estimate_set))
-    print("Recall:")
-    print(len(answer_set.intersection(estimate_set))/len(answer_set))
-    print(answer_set.difference(estimate_set))
